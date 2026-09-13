@@ -1,0 +1,29 @@
+[
+  {
+    "id": "jd-101",
+    "title": "Frontend Developer",
+    "department": "Engineering",
+    "company": "Nexus Web Systems",
+    "experience_required": "3+ years",
+    "required_skills": ["React", "JavaScript", "HTML", "CSS", "Git", "REST API"],
+    "description": "Frontend Developer with 3+ years experience building modern web applications with React, JavaScript, HTML, CSS, Git, and REST APIs."
+  },
+  {
+    "id": "jd-102",
+    "title": "Full Stack Engineer",
+    "department": "Core Platform",
+    "company": "CloudPulse Tech",
+    "experience_required": "4+ years",
+    "required_skills": ["React", "Node.js", "Express", "MongoDB", "JavaScript", "TypeScript", "Docker", "REST API"],
+    "description": "Full Stack Engineer needed to design end-to-end applications using React, Node.js, Express, MongoDB, TypeScript, Docker, and REST APIs."
+  },
+  {
+    "id": "jd-103",
+    "title": "AI / ML Engineer",
+    "department": "AI Labs",
+    "company": "Cognitive AI",
+    "experience_required": "3+ years",
+    "required_skills": ["Python", "Machine Learning", "NLP", "PyTorch", "Scikit-learn", "Pandas", "NumPy", "SQL"],
+    "description": "AI Engineer focused on Machine Learning, NLP, PyTorch models, Scikit-learn, Pandas data processing, and SQL."
+  }
+]
