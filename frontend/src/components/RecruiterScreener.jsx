@@ -205,10 +205,11 @@ export default function RecruiterScreener({ jobs, selectedJob, setSelectedJob, o
             <Cpu size={20} />
           </div>
           <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>NLP / ML PIPELINE</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>NLP & LLM AI PIPELINE</div>
             <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#38bdf8', marginTop: '2px' }}>
-              5-Level Hybrid AI
+              5-Level AI + LLM Copilot
             </div>
+
           </div>
         </div>
       </div>

@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, AlertTriangle, Lightbulb, ChevronDown, ChevronUp, Layers, Award, BookOpen, User, Briefcase, GraduationCap, Sparkles, Printer, Bot, HelpCircle, FileText } from 'lucide-react';
+import { 
+  X, Check, AlertTriangle, Lightbulb, ChevronDown, ChevronUp, 
+  Layers, Award, BookOpen, User, Briefcase, GraduationCap, 
+  Sparkles, Printer, Bot, HelpCircle, FileText, Copy, Key, 
+  Cpu, Zap, ShieldAlert 
+} from 'lucide-react';
 
 export default function CandidateModal({ candidate, onClose, apiBase = 'http://localhost:8000' }) {
   const [activeModalTab, setActiveModalTab] = useState('overview'); // 'overview', 'copilot', 'raw'
@@ -7,6 +12,12 @@ export default function CandidateModal({ candidate, onClose, apiBase = 'http://l
   const [activeSkillTab, setActiveSkillTab] = useState('all');
   const [copilotLoading, setCopilotLoading] = useState(false);
   const [copilotData, setCopilotData] = useState(null);
+  
+  // LLM Provider state
+  const [selectedProvider, setSelectedProvider] = useState('auto');
+  const [apiKey, setApiKey] = useState('');
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [copiedQuestionIdx, setCopiedQuestionIdx] = useState(null);
 
   if (!candidate) return null;
 
@@ -20,29 +31,49 @@ export default function CandidateModal({ candidate, onClose, apiBase = 'http://l
   const expMeta = candidate.experience_meta || {};
   const eduMeta = candidate.education_meta || {};
 
+  const fetchCopilotInsights = (providerOverride = null) => {
+    setCopilotLoading(true);
+    const providerToUse = providerOverride || selectedProvider;
+    fetch(`${apiBase}/api/ai-interview-questions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        job_title: candidate.headline || 'Software Engineer',
+        matching_skills: strongMatches,
+        missing_skills: missingSkills,
+        experience_years: expMeta.candidate_years || 0,
+        match_score: score,
+        provider: providerToUse,
+        api_key: apiKey || undefined,
+        resume_text: candidate.resume_snippet || candidate.full_analysis?.raw_resume_text || ""
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.copilot) setCopilotData(data.copilot);
+      })
+      .catch(err => console.error("Failed to load AI Copilot:", err))
+      .finally(() => setCopilotLoading(false));
+  };
+
   // Fetch AI Co-Pilot insights when tab changes
   useEffect(() => {
     if (activeModalTab === 'copilot' && !copilotData && !copilotLoading) {
-      setCopilotLoading(true);
-      fetch(`${apiBase}/api/ai-interview-questions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          job_title: candidate.headline || 'Software Engineer',
-          matching_skills: strongMatches,
-          missing_skills: missingSkills,
-          experience_years: expMeta.candidate_years || 0,
-          match_score: score
-        })
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.copilot) setCopilotData(data.copilot);
-        })
-        .catch(err => console.error("Failed to load AI Copilot:", err))
-        .finally(() => setCopilotLoading(false));
+      fetchCopilotInsights();
     }
   }, [activeModalTab, candidate]);
+
+  const handleProviderChange = (e) => {
+    const newProvider = e.target.value;
+    setSelectedProvider(newProvider);
+    fetchCopilotInsights(newProvider);
+  };
+
+  const handleCopyQuestion = (questionText, idx) => {
+    navigator.clipboard.writeText(questionText);
+    setCopiedQuestionIdx(idx);
+    setTimeout(() => setCopiedQuestionIdx(null), 2000);
+  };
 
   const getScoreColor = (val) => {
     if (val >= 80) return '#10b981';
@@ -178,7 +209,7 @@ export default function CandidateModal({ candidate, onClose, apiBase = 'http://l
               gap: '8px'
             }}
           >
-            <Bot size={16} color="#06b6d4" /> 🤖 AI Co-Pilot (Interview Qs)
+            <Bot size={16} color="#06b6d4" /> 🤖 AI Co-Pilot (LLM Insights)
           </button>
 
           <button
@@ -298,55 +329,57 @@ export default function CandidateModal({ candidate, onClose, apiBase = 'http://l
                       <span style={{ fontWeight: 700, color: dim.color }}>{dim.value}%</span>
                     </div>
                     <div className="progress-container">
-                      <div className="progress-bar-fill" style={{ width: `${dim.value}%`, background: dim.color }} />
+                      <div 
+                        className="progress-bar" 
+                        style={{ width: `${dim.value}%`, background: dim.color }} 
+                      />
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Skill Categorization & Pills */}
-            <div style={{ marginBottom: '28px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h3 style={{ fontSize: '1.05rem', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <BookOpen size={18} color="#06b6d4" /> Skill Matching Analysis
+            {/* Skills Extracted Section */}
+            <div style={{ background: 'rgba(7, 9, 14, 0.4)', padding: '24px', borderRadius: '20px', marginBottom: '28px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.05rem', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <BookOpen size={20} color="#38bdf8" /> Skills Taxonomy & Gap Analysis
                 </h3>
-
-                <div style={{ display: 'flex', gap: '6px' }} className="no-print">
-                  {['all', 'matched', 'missing'].map(tab => (
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {['all', 'matched', 'missing'].map((tab) => (
                     <button
                       key={tab}
                       onClick={() => setActiveSkillTab(tab)}
                       style={{
                         background: activeSkillTab === tab ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
                         border: '1px solid',
-                        borderColor: activeSkillTab === tab ? '#6366f1' : 'rgba(255, 255, 255, 0.1)',
-                        color: activeSkillTab === tab ? '#818cf8' : 'var(--text-muted)',
+                        borderColor: activeSkillTab === tab ? '#6366f1' : 'transparent',
+                        color: activeSkillTab === tab ? '#ffffff' : 'var(--text-muted)',
                         padding: '4px 12px',
-                        borderRadius: '20px',
+                        borderRadius: '8px',
                         fontSize: '0.75rem',
                         cursor: 'pointer',
-                        fontWeight: 600,
-                        textTransform: 'capitalize'
+                        textTransform: 'capitalize',
+                        fontWeight: 600
                       }}
                     >
-                      {tab}
+                      {tab} ({tab === 'all' ? strongMatches.length + missingSkills.length : tab === 'matched' ? strongMatches.length : missingSkills.length})
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {(activeSkillTab === 'all' || activeSkillTab === 'matched') && (
                   <div style={{ background: 'rgba(16, 185, 129, 0.04)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '18px', borderRadius: '16px' }}>
                     <h4 style={{ fontSize: '0.9rem', color: '#34d399', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Check size={16} /> Matched Skills ({strongMatches.length})
+                      <Check size={16} /> Matched Core Skills ({strongMatches.length})
                     </h4>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       {strongMatches.length > 0 ? (
                         strongMatches.map((skill, i) => <span key={i} className="pill pill-matched">✓ {skill}</span>)
                       ) : (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No exact skill matches</span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No direct skills matched</span>
                       )}
                     </div>
                   </div>
@@ -387,43 +420,275 @@ export default function CandidateModal({ candidate, onClose, apiBase = 'http://l
           </>
         )}
 
-        {/* TAB 2: AI CO-PILOT INTERVIEW QUESTIONS */}
+        {/* TAB 2: AI CO-PILOT INTERVIEW QUESTIONS & EXECUTIVE SUMMARY */}
         {activeModalTab === 'copilot' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* AI Provider Switcher & Key Bar */}
+            <div style={{ 
+              background: 'rgba(7, 9, 14, 0.6)', 
+              border: '1px solid rgba(99, 102, 241, 0.3)', 
+              padding: '16px 20px', 
+              borderRadius: '16px',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Cpu size={20} color="#818cf8" />
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f8fafc' }}>AI Engine Provider</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Choose your preferred model for deep intelligence</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <select 
+                  value={selectedProvider} 
+                  onChange={handleProviderChange}
+                  style={{
+                    background: 'rgba(15, 23, 42, 0.9)',
+                    color: '#e2e8f0',
+                    border: '1px solid rgba(99, 102, 241, 0.4)',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="auto">⚡ Auto-Detect (Best Available)</option>
+                  <option value="gemini">✨ Google Gemini API</option>
+                  <option value="openai">🤖 OpenAI GPT-4o-mini</option>
+                  <option value="ollama">🦙 Local Ollama LLM</option>
+                  <option value="fallback">⚙️ Fast Rule Engine</option>
+                </select>
+
+                <button
+                  onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+                  title="Configure custom API key"
+                  style={{
+                    background: showApiKeyInput ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    color: showApiKeyInput ? '#a5b4fc' : 'var(--text-muted)',
+                    borderRadius: '10px',
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600
+                  }}
+                >
+                  <Key size={14} /> Key
+                </button>
+
+                <button
+                  onClick={() => fetchCopilotInsights()}
+                  style={{
+                    background: 'linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)',
+                    border: 'none',
+                    color: '#ffffff',
+                    borderRadius: '10px',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: 700,
+                    fontSize: '0.825rem',
+                    boxShadow: '0 4px 12px rgba(6, 182, 212, 0.3)'
+                  }}
+                >
+                  <Zap size={14} /> Regenerate
+                </button>
+              </div>
+
+              {showApiKeyInput && (
+                <div style={{ width: '100%', marginTop: '10px', display: 'flex', gap: '10px' }}>
+                  <input
+                    type="password"
+                    placeholder="Paste Gemini or OpenAI API Key here (or leave blank to use backend ENV)"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    style={{
+                      flex: 1,
+                      background: 'rgba(15, 23, 42, 0.9)',
+                      border: '1px solid rgba(99, 102, 241, 0.4)',
+                      color: '#ffffff',
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      fontSize: '0.825rem'
+                    }}
+                  />
+                  <button
+                    onClick={() => fetchCopilotInsights()}
+                    style={{
+                      background: '#4f46e5',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px 14px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: 600
+                    }}
+                  >
+                    Apply Key
+                  </button>
+                </div>
+              )}
+            </div>
+
             {copilotLoading ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--primary-light)' }}>
-                <Bot size={36} className="spin" style={{ marginBottom: '12px' }} />
-                <p>Generating custom technical interview questions & resume tips...</p>
+              <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--primary-light)' }}>
+                <Bot size={40} className="spin" style={{ marginBottom: '14px', color: '#06b6d4' }} />
+                <p style={{ fontWeight: 600, fontSize: '1.05rem', color: '#f8fafc' }}>
+                  Generating AI Executive Insights & Interview Plan...
+                </p>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  Analyzing missing skill gaps and synthesizing candidate profile evaluation.
+                </p>
               </div>
             ) : copilotData ? (
               <>
-                <div style={{ background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.3)', padding: '20px', borderRadius: '18px' }}>
-                  <h3 style={{ fontSize: '1.1rem', color: '#38bdf8', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Bot size={22} /> Recruiter Decision Verdict
-                  </h3>
-                  <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#e0f2fe' }}>
-                    {copilotData.recruiter_verdict}
+                {/* Provider Status Pill */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ 
+                    fontSize: '0.75rem', 
+                    background: copilotData.is_llm_generated ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                    color: copilotData.is_llm_generated ? '#34d399' : '#818cf8',
+                    border: '1px solid',
+                    borderColor: copilotData.is_llm_generated ? 'rgba(16, 185, 129, 0.3)' : 'rgba(99, 102, 241, 0.3)',
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    {copilotData.is_llm_generated ? '✨ Powered by LLM:' : '⚙️ Engine:'} {copilotData.provider_used.toUpperCase()}
+                  </span>
+                </div>
+
+                {/* Executive Summary Card */}
+                <div style={{ 
+                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(99, 102, 241, 0.08) 100%)', 
+                  border: '1px solid rgba(6, 182, 212, 0.35)', 
+                  padding: '24px', 
+                  borderRadius: '20px',
+                  boxShadow: '0 8px 32px rgba(6, 182, 212, 0.1)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                    <h3 style={{ fontSize: '1.15rem', color: '#38bdf8', margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 800 }}>
+                      <Bot size={24} /> Executive AI Assessment
+                    </h3>
+                    <span style={{
+                      background: score >= 80 ? 'rgba(16, 185, 129, 0.2)' : score >= 60 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                      color: score >= 80 ? '#34d399' : score >= 60 ? '#fbbf24' : '#f87171',
+                      border: '1px solid',
+                      borderColor: score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444',
+                      padding: '4px 12px',
+                      borderRadius: '12px',
+                      fontWeight: 800,
+                      fontSize: '0.85rem'
+                    }}>
+                      {copilotData.recruiter_verdict || "Evaluated"}
+                    </span>
+                  </div>
+
+                  <p style={{ margin: '0 0 16px 0', fontSize: '0.95rem', lineHeight: 1.6, color: '#f1f5f9' }}>
+                    {copilotData.executive_summary || copilotData.recruiter_verdict}
                   </p>
-                  <div style={{ marginTop: '10px', fontSize: '0.85rem', color: '#94a3b8' }}>
-                    💡 <strong>Interview Focus:</strong> {copilotData.key_focus_area}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                    {/* Strengths */}
+                    {copilotData.strengths && copilotData.strengths.length > 0 && (
+                      <div style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '14px 18px', borderRadius: '14px' }}>
+                        <h4 style={{ fontSize: '0.85rem', color: '#34d399', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+                          <Check size={14} /> Key Technical Strengths
+                        </h4>
+                        <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.825rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+                          {copilotData.strengths.map((str, idx) => (
+                            <li key={idx}>{str}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Watchouts */}
+                    {copilotData.watchouts && copilotData.watchouts.length > 0 && (
+                      <div style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '14px 18px', borderRadius: '14px' }}>
+                        <h4 style={{ fontSize: '0.85rem', color: '#fbbf24', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+                          <ShieldAlert size={14} /> Probe & Watchout Areas
+                        </h4>
+                        <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.825rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+                          {copilotData.watchouts.map((wo, idx) => (
+                            <li key={idx}>{wo}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Custom Interview Questions */}
+                {/* Custom Technical Interview Questions */}
                 <div>
-                  <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <HelpCircle size={20} color="#818cf8" /> Custom Technical Interview Questions ({copilotData.questions.length})
-                  </h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h3 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 800 }}>
+                      <HelpCircle size={22} color="#818cf8" /> Tailored Interview Questions ({copilotData.questions?.length || 0})
+                    </h3>
+                  </div>
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    {copilotData.questions.map((q, idx) => (
-                      <div key={idx} style={{ background: 'rgba(7, 9, 14, 0.5)', padding: '18px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                        <span className="pill pill-related" style={{ marginBottom: '8px', display: 'inline-block' }}>
-                          {q.category}
-                        </span>
-                        <h4 style={{ fontSize: '0.95rem', margin: '6px 0 8px 0', color: '#f8fafc', lineHeight: 1.4 }}>
+                    {(copilotData.questions || []).map((q, idx) => (
+                      <div key={idx} style={{ 
+                        background: 'rgba(7, 9, 14, 0.6)', 
+                        padding: '20px', 
+                        borderRadius: '16px', 
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        transition: 'border-color 0.2s'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                          <span className="pill pill-related" style={{ fontWeight: 700, fontSize: '0.75rem' }}>
+                            {q.category}
+                          </span>
+                          <button
+                            onClick={() => handleCopyQuestion(q.question, idx)}
+                            style={{
+                              background: copiedQuestionIdx === idx ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.05)',
+                              border: '1px solid',
+                              borderColor: copiedQuestionIdx === idx ? '#10b981' : 'rgba(255,255,255,0.1)',
+                              color: copiedQuestionIdx === idx ? '#34d399' : 'var(--text-muted)',
+                              borderRadius: '8px',
+                              padding: '4px 10px',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              fontWeight: 600
+                            }}
+                          >
+                            {copiedQuestionIdx === idx ? <Check size={12} /> : <Copy size={12} />}
+                            {copiedQuestionIdx === idx ? 'Copied!' : 'Copy'}
+                          </button>
+                        </div>
+
+                        <h4 style={{ fontSize: '0.975rem', margin: '8px 0 12px 0', color: '#f8fafc', lineHeight: 1.5, fontWeight: 700 }}>
                           {idx + 1}. "{q.question}"
                         </h4>
-                        <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px' }}>
+
+                        <div style={{ 
+                          fontSize: '0.825rem', 
+                          color: '#94a3b8', 
+                          background: 'rgba(255,255,255,0.03)', 
+                          padding: '12px 14px', 
+                          borderRadius: '10px',
+                          borderLeft: '3px solid #06b6d4'
+                        }}>
                           🎯 <strong>What to look for:</strong> {q.what_to_look_for}
                         </div>
                       </div>
@@ -431,18 +696,18 @@ export default function CandidateModal({ candidate, onClose, apiBase = 'http://l
                   </div>
                 </div>
 
-                {/* Resume Improvement Tips for Candidate */}
+                {/* Candidate Resume Tailoring Tips */}
                 <div>
-                  <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Sparkles size={20} color="#f59e0b" /> Candidate Resume Tailoring Guidance
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 800 }}>
+                    <Sparkles size={20} color="#f59e0b" /> ATS Resume Optimization Recommendations
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {copilotData.candidate_tips.map((tip, idx) => (
+                    {(copilotData.candidate_tips || []).map((tip, idx) => (
                       <div key={idx} style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '16px', borderRadius: '14px' }}>
                         <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#fbbf24', marginBottom: '4px' }}>
                           • {tip.title}
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>
+                        <div style={{ fontSize: '0.85rem', color: '#cbd5e1', lineHeight: 1.5 }}>
                           {tip.detail}
                         </div>
                       </div>
@@ -498,4 +763,3 @@ export default function CandidateModal({ candidate, onClose, apiBase = 'http://l
     </div>
   );
 }
-

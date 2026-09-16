@@ -59,6 +59,11 @@ class AiCopilotRequest(BaseModel):
     missing_skills: List[str] = []
     experience_years: float = 0.0
     match_score: float = 0.0
+    provider: Optional[str] = None
+    api_key: Optional[str] = None
+    resume_text: Optional[str] = None
+    jd_text: Optional[str] = None
+
 
 
 @app.get("/api/health")
@@ -244,20 +249,42 @@ async def batch_screen_candidates(
     }
 
 
+@app.get("/api/llm/providers")
+def get_llm_providers():
+    """Returns available LLM providers and active status."""
+    import os
+    gemini_key = os.getenv("GEMINI_API_KEY", "")
+    openai_key = os.getenv("OPENAI_API_KEY", "")
+    ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+
+    return {
+        "providers": [
+            {"id": "auto", "name": "⚡ Auto-Detect (Best Available)", "available": True},
+            {"id": "gemini", "name": "✨ Google Gemini API", "available": bool(gemini_key)},
+            {"id": "openai", "name": "🤖 OpenAI GPT-4o-mini", "available": bool(openai_key)},
+            {"id": "ollama", "name": "🦙 Local Ollama LLM", "available": True, "host": ollama_host},
+            {"id": "fallback", "name": "⚙️ Fast Deterministic Engine", "available": True}
+        ]
+    }
+
+
 @app.post("/api/ai-interview-questions")
 def get_ai_interview_questions(req: AiCopilotRequest):
     """
     AI Recruiter Co-Pilot Endpoint:
-    Generates targeted technical interview questions & candidate resume advice based on missing skill gaps.
+    Generates executive candidate summaries, targeted technical interview questions & ATS resume tips.
     """
     copilot_insights = generate_interview_questions_and_tips(
         job_title=req.job_title,
         matching_skills=req.matching_skills,
         missing_skills=req.missing_skills,
         experience_years=req.experience_years,
-        match_score=req.match_score
+        match_score=req.match_score,
+        provider=req.provider,
+        api_key=req.api_key
     )
     return {"copilot": copilot_insights}
+
 
 
 @app.get("/api/export-candidates-csv")
@@ -287,7 +314,8 @@ def export_candidates_csv(jd_id: str):
             "name": cand["name"],
             "email": cand["email"],
             "match_pct": analysis["overall_match_pct"],
-            "verdict": analysis["ml_suitability"]["recommendation"],
+            "verdict": analysis["ml_suitability"].get("status_label", analysis["ml_suitability"].get("prediction", "Evaluated")),
+
             "matching_skills": "; ".join(analysis["strong_matches"][:5]),
             "missing_skills": "; ".join(analysis["missing_skills"][:5]),
             "exp_years": analysis["experience_meta"]["candidate_years"]

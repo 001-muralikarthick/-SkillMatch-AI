@@ -19,3 +19,10 @@ class Config:
     
     # Database
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/resumeiq_db")
+    
+    # LLM & AI Co-Pilot Configuration
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+    OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+    PREFERRED_LLM_PROVIDER = os.getenv("PREFERRED_LLM_PROVIDER", "auto")
+

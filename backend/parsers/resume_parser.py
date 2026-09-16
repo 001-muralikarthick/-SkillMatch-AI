@@ -106,21 +106,14 @@ def anonymize_resume_text(text: str, candidate_name: str = None) -> str:
         
     anonymized = text
     
-    # 1. Redact Candidate Name if provided
-    if candidate_name and candidate_name.strip():
-        name_parts = [p.strip() for p in candidate_name.split() if len(p.strip()) > 1]
-        for part in name_parts:
-            pattern = re.compile(re.escape(part), re.IGNORECASE)
-            anonymized = pattern.sub("[CANDIDATE NAME REDACTED]", anonymized)
-            
-    # 2. Redact Email addresses
+    # 1. Redact Email addresses
     anonymized = re.sub(
         r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',
         '[EMAIL REDACTED]',
         anonymized
     )
     
-    # 3. Redact Phone numbers (US, international formats)
+    # 2. Redact Phone numbers (US, international formats)
     anonymized = re.sub(
         r'\(?\b\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b',
         '[PHONE REDACTED]',
@@ -132,13 +125,21 @@ def anonymize_resume_text(text: str, candidate_name: str = None) -> str:
         anonymized
     )
     
-    # 4. Redact Web links & LinkedIn/GitHub profiles
+    # 3. Redact Web links & LinkedIn/GitHub profiles
     anonymized = re.sub(
         r'https?://[^\s]+|www\.[^\s]+|linkedin\.com/in/[^\s]+|github\.com/[^\s]+',
         '[LINK REDACTED]',
         anonymized,
         flags=re.IGNORECASE
     )
+
+    # 4. Redact Candidate Name if provided
+    if candidate_name and candidate_name.strip():
+        name_parts = [p.strip() for p in candidate_name.split() if len(p.strip()) > 1]
+        for part in name_parts:
+            pattern = re.compile(re.escape(part), re.IGNORECASE)
+            anonymized = pattern.sub("[CANDIDATE NAME REDACTED]", anonymized)
+
     
     # 5. Redact header candidate name heuristic (first non-empty line if short)
     lines = anonymized.split('\n')

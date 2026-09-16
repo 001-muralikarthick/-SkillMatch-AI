@@ -16,9 +16,12 @@
 - **Automatic PII Redaction**: Regex-powered PII mask that removes candidate names, emails, phone numbers, and location details (`[CANDIDATE NAME REDACTED]`, `[EMAIL REDACTED]`, `[PHONE REDACTED]`).
 - **1-Click Toggle**: Switch between full candidate profiles and unbiased screening mode.
 
-### 2. 🤖 AI Recruiter Co-Pilot (Interview Question & Gap Generator)
-- **Custom Technical Questions**: Analyzes candidate missing skills to generate 4 tailored technical interview questions with *"What to look for"* guidance for recruiters.
-- **Candidate Resume Feedback**: Provides actionable advice for candidates on how to tailor their resume metrics for ATS indexing.
+### 2. 🤖 Multi-Provider LLM Recruiter Co-Pilot (Executive Summary, Interview Questions & Resume Optimizer)
+- **Multi-LLM Integration**: Supports **Google Gemini API**, **OpenAI GPT-4o-mini**, **Local Ollama LLMs**, and an enhanced **Fast Rule Engine**.
+- **Executive Candidate Summary**: Synthesizes 5-dimensional scores into executive recruiter recommendations, key technical strengths, and probe watchout areas.
+- **Custom Technical Questions**: Generates tailored technical & behavioral interview questions targeting missing skill gaps with *"What to look for"* guidance for recruiters.
+- **ATS Resume Tailoring Guidance**: Actionable advice for candidates on keyword positioning and metric-backed impact framing.
+
 
 ### 3. 📊 5-Dimensional Explainable Scoring Engine
 Instead of black-box predictions, SkillMatch AI evaluates candidate alignment across 5 weighted dimensions:

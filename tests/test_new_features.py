@@ -50,10 +50,11 @@ class TestNewFeatures(unittest.TestCase):
         self.assertGreater(len(data["copilot"]["questions"]), 0)
 
     def test_csv_export_endpoint(self):
-        response = self.client.get("/api/export-candidates-csv?jd_id=job-preset-001")
+        response = self.client.get("/api/export-candidates-csv?jd_id=job-1")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.headers["content-type"].startswith("text/csv"))
         self.assertIn("Rank,Candidate Name", response.text)
+
 
 if __name__ == '__main__':
     unittest.main()
