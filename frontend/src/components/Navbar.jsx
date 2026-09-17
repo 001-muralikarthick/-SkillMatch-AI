@@ -1,14 +1,16 @@
 import React from 'react';
-import { Sparkles, Users, Cpu, Database, Layers, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Sparkles, Users, Cpu, Database, Layers, ExternalLink, ShieldCheck, Upload } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab }) {
   const tabs = [
     { id: 'screener', label: 'Recruiter Screener', icon: Users },
+    { id: 'parser', label: 'Live Upload & Parser', icon: Upload },
     { id: 'recommender', label: 'Job Recommendation', icon: Sparkles },
     { id: 'sandbox', label: 'NLP & ML Sandbox', icon: Cpu },
     { id: 'flow', label: 'System Flowchart', icon: Layers },
     { id: 'taxonomy', label: 'Skill Taxonomy', icon: Database },
   ];
+
 
   return (
     <header 

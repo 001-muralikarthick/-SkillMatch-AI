@@ -35,7 +35,13 @@ Instead of black-box predictions, SkillMatch AI evaluates candidate alignment ac
 - **Candidate Pool CSV**: Export entire ranked candidate pools as a downloadable `.csv` report.
 - **Printable PDF Scorecard**: Generate formatted 1-page printable scorecards with print-optimized CSS layout.
 
+### 5. ⚡ Live Resume Drag & Drop Uploader & Real-Time AI Parser
+- **Multi-Format Document Parsing**: Drag & drop `.pdf`, `.docx`, or `.txt` resumes for instant text extraction.
+- **On-The-Fly Skill Taxonomy & PII Preview**: Auto-detect canonical skills, preview blind PII redactions, and calculate 5-dimensional explainable match scores against active job descriptions.
+- **1-Click Candidate Dashboard Sync**: Instantly inject parsed candidates into the active recruiter screening pool.
+
 ---
+
 
 ## 🛠️ Architecture & Tech Stack
 

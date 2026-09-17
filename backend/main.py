@@ -249,6 +249,77 @@ async def batch_screen_candidates(
     }
 
 
+@app.post("/api/upload-parse")
+async def upload_and_parse_resume(
+    file: UploadFile = File(...),
+    jd_id: Optional[str] = Form(None),
+    jd_text: Optional[str] = Form(None)
+):
+    """
+    Live Parser API:
+    Accepts raw resume file (.pdf, .docx, .txt), parses text, extracts skills,
+    generates PII redaction preview, and calculates 5-dimensional explainable AI match score.
+    """
+    content_bytes = await file.read()
+    if not content_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    text, fmt = parse_resume_file(file.filename, content_bytes)
+    if not text.strip():
+        raise HTTPException(status_code=422, detail=f"Could not extract readable text from {file.filename}.")
+
+    name_guess = file.filename.rsplit('.', 1)[0].replace('_', ' ').replace('-', ' ').title()
+    extracted_skills = extract_skills_from_text(text)
+    anonymized_text = anonymize_resume_text(text, name_guess)
+
+    # Determine job description text if provided
+    target_jd = None
+    target_jd_text = jd_text or ""
+    if jd_id:
+        for j in JOBS_DB:
+            if j["id"] == jd_id:
+                target_jd = j
+                target_jd_text = j["description"]
+                if j.get("required_skills"):
+                    target_jd_text += "\nRequired Skills: " + ", ".join(j["required_skills"])
+                break
+
+    match_analysis = None
+    if target_jd_text:
+        match_analysis = analyze_resume_explainable(text, target_jd_text)
+
+    candidate_id = f"upload-{uuid.uuid4().hex[:6]}"
+    parsed_candidate = {
+        "candidate_id": candidate_id,
+        "name": name_guess,
+        "email": f"{name_guess.lower().replace(' ', '.')}@uploaded.resume",
+        "headline": f"Parsed {fmt} Resume",
+        "raw_text": text,
+        "anonymized_text": anonymized_text,
+        "file_format": fmt,
+        "extracted_skills": extracted_skills,
+        "char_count": len(text),
+        "word_count": len(text.split()),
+        "overall_match_pct": match_analysis["overall_match_pct"] if match_analysis else 0.0,
+        "suitability": match_analysis["ml_suitability"] if match_analysis else "Not Evaluated",
+        "match_breakdown": match_analysis["match_breakdown"] if match_analysis else {},
+        "strong_matches": match_analysis["strong_matches"] if match_analysis else extracted_skills,
+        "missing_skills": match_analysis["missing_skills"] if match_analysis else [],
+        "experience_meta": match_analysis["experience_meta"] if match_analysis else {},
+        "education_meta": match_analysis["education_meta"] if match_analysis else {},
+        "full_analysis": match_analysis
+    }
+
+    return {
+        "success": True,
+        "filename": file.filename,
+        "file_format": fmt,
+        "candidate": parsed_candidate,
+        "target_job": target_jd
+    }
+
+
+
 @app.get("/api/llm/providers")
 def get_llm_providers():
     """Returns available LLM providers and active status."""

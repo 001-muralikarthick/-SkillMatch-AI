@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import RecruiterScreener from './components/RecruiterScreener';
+import LiveResumeParser from './components/LiveResumeParser';
 import CandidateJobMatcher from './components/CandidateJobMatcher';
 import NlpSandbox from './components/NlpSandbox';
 import SystemArchitectureFlow from './components/SystemArchitectureFlow';
@@ -13,6 +14,11 @@ export default function App() {
   const [jobs, setJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
   const [backendStatus, setBackendStatus] = useState(false);
+  const [uploadedCandidates, setUploadedCandidates] = useState([]);
+
+  const handleAddCandidateToPool = (candidate) => {
+    setUploadedCandidates((prev) => [candidate, ...prev]);
+  };
 
   const fetchJobs = async () => {
     try {
@@ -48,6 +54,17 @@ export default function App() {
             setSelectedJob={setSelectedJob}
             onRefreshJobs={fetchJobs}
             apiBase={API_BASE}
+            extraUploadedCandidates={uploadedCandidates}
+          />
+        )}
+
+        {activeTab === 'parser' && (
+          <LiveResumeParser
+            jobs={jobs}
+            selectedJob={selectedJob}
+            setSelectedJob={setSelectedJob}
+            onAddCandidateToPool={handleAddCandidateToPool}
+            apiBase={API_BASE}
           />
         )}
 
@@ -67,6 +84,7 @@ export default function App() {
           <SkillTaxonomyExplorer apiBase={API_BASE} />
         )}
       </main>
+
 
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '20px', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-dim)' }}>
         SkillMatch AI — Level 1 to Level 5 NLP & Machine Learning Recruitment Intelligence System

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Upload, Briefcase, Plus, Search, Eye, Award, CheckCircle, AlertCircle, FileText, Sparkles, Filter, Users, TrendingUp, Cpu, SlidersHorizontal, ArrowLeftRight, Check, X, Shield, Download, EyeOff } from 'lucide-react';
 import CandidateModal from './CandidateModal';
 
-export default function RecruiterScreener({ jobs, selectedJob, setSelectedJob, onRefreshJobs, apiBase }) {
+export default function RecruiterScreener({ jobs, selectedJob, setSelectedJob, onRefreshJobs, apiBase, extraUploadedCandidates = [] }) {
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
@@ -25,6 +25,20 @@ export default function RecruiterScreener({ jobs, selectedJob, setSelectedJob, o
     required_skills: '',
     description: ''
   });
+
+  // Merge extraUploadedCandidates if provided
+  useEffect(() => {
+    if (extraUploadedCandidates && extraUploadedCandidates.length > 0) {
+      setCandidates((prev) => {
+        const existingIds = new Set(prev.map((c) => c.candidate_id));
+        const newOnes = extraUploadedCandidates.filter((c) => !existingIds.has(c.candidate_id));
+        if (newOnes.length === 0) return prev;
+        const merged = [...newOnes, ...prev];
+        merged.sort((a, b) => (b.overall_match_pct || 0) - (a.overall_match_pct || 0));
+        return merged.map((c, i) => ({ ...c, rank: i + 1 }));
+      });
+    }
+  }, [extraUploadedCandidates]);
 
   // Handle batch candidate screening call
   const handleScreenCandidates = async (usePresetOnly = false) => {
@@ -50,7 +64,15 @@ export default function RecruiterScreener({ jobs, selectedJob, setSelectedJob, o
       });
       const data = await res.json();
       if (data.candidates) {
-        setCandidates(data.candidates);
+        let allCands = data.candidates;
+        if (extraUploadedCandidates && extraUploadedCandidates.length > 0) {
+          const existingIds = new Set(allCands.map((c) => c.candidate_id));
+          const extraNew = extraUploadedCandidates.filter((c) => !existingIds.has(c.candidate_id));
+          allCands = [...extraNew, ...allCands];
+          allCands.sort((a, b) => (b.overall_match_pct || 0) - (a.overall_match_pct || 0));
+          allCands = allCands.map((c, i) => ({ ...c, rank: i + 1 }));
+        }
+        setCandidates(allCands);
       }
     } catch (err) {
       console.error("Screening failed:", err);
@@ -58,6 +80,7 @@ export default function RecruiterScreener({ jobs, selectedJob, setSelectedJob, o
       setLoading(false);
     }
   };
+
 
   const handleExportCsv = () => {
     if (!selectedJob) return;
